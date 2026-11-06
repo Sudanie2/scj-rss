@@ -1,0 +1,38 @@
+name: Generate SCJ RSS Feed
+
+on:
+  schedule:
+    - cron: "10 1 * * *"   # JST 10:10
+    - cron: "10 5 * * *"   # JST 14:10
+    - cron: "10 8 * * *"   # JST 17:10
+  workflow_dispatch:        # 手動実行も可能
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate rss.xml
+        run: python scripts/generate_rss.py
+
+      - name: Commit and Push RSS
+        run: |
+          if git diff --quiet rss.xml 2>/dev/null && [ -n "$(git ls-files rss.xml)" ]; then
+            echo "No changes in rss.xml. Skipping commit."
+            exit 0
+          fi
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add rss.xml
+          git commit -m "Updated RSS feed"
+          git push
